@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+        /* আপনার ব্যক্তিগত কোড অ্যাপের জন্য স্টাইল */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 95%;
+            height: 100px;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            flex-grow: 1;
+            margin: 0 5px;
+        }
+        button.decode {
+            background-color: #2ecc71; /* সবুজ রং ডিকোডের জন্য */
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.decode:hover {
+            background-color: #27ae60;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #3498db;
+            background-color: #eaf3f8;
+            border-radius: 5px;
+            min-height: 40px;
+            text-align: left;
+            word-wrap: break-word;
+            font-weight: bold;
+        }
+        .note {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2></h2>
+
+        <p>:</p>
+        <textarea id="ioInput" placeholder="write your word or code.." rows="4"></textarea>
+
+        <div class="buttons">
+            <button onclick="encodeMessage()">এনকোড (শব্দ → কোড)</button>
+            <button class="decode" onclick="decodeMessage()">ডিকোড (কোড → শব্দ)</button>
+        </div>
+
+        <h3></h3>
+        <div id="result"></div>
+
+        <p class="note">ইনপুট দেওয়ার সময় শুধুমাত্র A-Z (Capital), 0-9, Space এবং **ডট (.)** ব্যবহার করুন।</p>
+    </div>
+
+    <script>
+        // --- ১. কোড কি (Code Key) ---
+        const DECODE_KEY = {
+            // বর্ণমালা (Alphabets)
+            "{{": "A", "{}": "B", "{[": "C", "{]": "D", "{<": "E", "{>": "F", "{/": "G",
+            "}}": "H", "}[": "I", "}]": "J", "}<": "K", "}>": "L", "}/": "M",
+            "[{": "N", "[]": "O", "[<": "P", "[>": "Q", "[/": "R",
+            "]{": "S", "]}": "T", "][": "U", "]>": "V", "]/": "W",
+            "<{" : "X", "<}": "Y", "<[": "Z",
+            
+            // সংখ্যা (Numbers)
+            "<]": "0", "<<": "1", "<>": "2", "</": "3",
+            ">{" : "4", ">}": "5", ">[": "6", ">]": "7", ">": "8", ">>": "9",
+
+            // স্পেস
+            "/": " ",
+            
+            // নতুন সংযোজন: ডট (.)
+            "//": "." 
+        };
+
+        // --- ২. রিভার্স কোড কি (এনকোডিং-এর জন্য) ---
+        // DECODE_KEY কে উল্টে ENCODE_KEY তৈরি করা হচ্ছে 
+        const ENCODE_KEY = {};
+        for (const code in DECODE_KEY) {
+            ENCODE_KEY[DECODE_KEY[code]] = code;
+        }
+
+        // --- এনকোডিং ফাংশন ---
+        function encodeMessage() {
+            // ইনপুটের ছোট অক্ষরগুলিকে বড় হাতের অক্ষরে পরিবর্তন করা হচ্ছে 
+            // এবং ডট (.) অক্ষরের জন্য টার্গেটেড রূপান্তর নিশ্চিত করতে toUpperCase() ডটের পরে ব্যবহার করা হচ্ছে।
+            const rawInput = document.getElementById('ioInput').value;
+            const input = rawInput.toUpperCase(); 
+
+            const resultDiv = document.getElementById('result');
+            let encodedText = "";
+            let error = false;
+
+            for (let i = 0; i < input.length; i++) {
+                const char = input[i];
+
+                if (char === ' ') {
+                    // স্পেসের জন্য কোড
+                    encodedText += "/ "; 
+                } else if (char === '.') { // <-- ডট এর জন্য নতুন শর্ত 
+                    encodedText += "// "; 
+                } else if (ENCODE_KEY[char]) {
+                    encodedText += ENCODE_KEY[char] + " "; // প্রতিটি কোড ব্লক এর পর স্পেস 
+                } else {
+                    encodedText += "[?]"; // অজানা অক্ষর
+                    error = true;
+                }
+            }
+            
+            if (error) {
+                resultDiv.textContent = "result। ফলাফল: " + encodedText.trim();
+            } else if (encodedText.trim().length === 0) {
+                 resultDiv.textContent = "sorry";
+            } else {
+                resultDiv.textContent = encodedText.trim();
+            }
+        }
+
+        // --- ডিকোডিং ফাংশন ---
+        function decodeMessage() {
+            const codeInput = document.getElementById('ioInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            let decodedText = "";
+            
+            // ডিকোডিং-এর সময়, ইনপুট থেকে স্পেস মুছে ফেলা হচ্ছে
+            const cleanCode = codeInput.replace(/\s/g, ''); 
+
+            // কোডটি দুটি প্রতীকের ব্লক হিসেবে ভাঙা হচ্ছে
+            for (let i = 0; i < cleanCode.length; i += 2) {
+                const codeBlock = cleanCode.substring(i, i + 2);
+                
+                if (DECODE_KEY[codeBlock]) {
+                    decodedText += DECODE_KEY[codeBlock];
+                } else {
+                    if (codeBlock.length === 2) {
+                        decodedText += "[?]"; // ব্লকটি অজানা
+                    } else if (codeBlock.length === 1) {
+                        decodedText += "[ত্রুটি: অসমাপ্ত কোড]";
+                    }
+                }
+            }
+
+            if (decodedText.length > 0 && !decodedText.includes("[ত্রুটি")) {
+                resultDiv.textContent = decodedText;
+            } else if (decodedText.includes("[ত্রুটি")) {
+                resultDiv.textContent = decodedText;
+            } else {
+                resultDiv.textContent = "";
+            }
+        }
+    </script>
+</body>
+</html>
